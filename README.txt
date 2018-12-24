@@ -26,7 +26,7 @@
 ! GNU General Public License for more details.
 !
 ! You should have received a copy of the GNU General Public License
-! along with this program.  If not, see https://www.gnu.org/licenses/.
+! along with this program.  If not, see https://www.gnu.org/licenses/
 !
 !**********************************************************************
 ! Usage:
@@ -47,9 +47,10 @@
 !
 ! The two material parameters AMU1, AMU2 characterizing the elastic    
 ! behavior of the underlying elastomer are non-negative real numbers 
-! (AMU1 >= 0, AMU2 >= 0). The two exponents ALPHA1, ALPHA2 are real 
-! numbers leading to a strongly elliptic strain energy (see eq. (22)
-! in [2]). This is left to the user to check.
+! (AMU1 >= 0, AMU2 >= 0) with strictly positive sum (AMU1 + AMU2 > 0). 
+! The two exponents ALPHA1, ALPHA2 are non-zero real numbers 
+! (ALPHA1 > 0, ALPHA2 > 0) leading to a strongly elliptic strain 
+! energy (see eq. (22) in [2]). This is left to the user to check.
 !
 ! The initial porosity (AC) must satisfy 0 <= AC <= 1. 
 !

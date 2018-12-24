@@ -1,5 +1,5 @@
 !**********************************************************************
-! Legal notice: UHYPER_Shrimali_Lefevre_Lopez-Pamies.for: 
+! Legal notice: UHYPER_Shrimali_Lefevre_Lopez-Pamies.for (Windows) 
 !
 ! Copyright (C) 2018 Bhavesh Shrimali (bshrima2@illinois.edu)
 !                    Victor Lefèvre (victor.lefevre@northwestern.edu)
@@ -25,7 +25,7 @@
 ! GNU General Public License for more details.
 !
 ! You should have received a copy of the GNU General Public License
-! along with this program.  If not, see https://www.gnu.org/licenses/.
+! along with this program.  If not, see https://www.gnu.org/licenses/
 !
 !**********************************************************************
 ! Usage:
@@ -46,9 +46,10 @@
 !
 ! The two material parameters AMU1, AMU2 characterizing the elastic    
 ! behavior of the underlying elastomer are non-negative real numbers 
-! (AMU1 >= 0, AMU2 >= 0). The two exponents ALPHA1, ALPHA2 are real 
-! numbers leading to a strongly elliptic strain energy (see eq. (22)
-! in [2]). This is left to the user to check.
+! (AMU1 >= 0, AMU2 >= 0) with strictly positive sum (AMU1 + AMU2 > 0). 
+! The two exponents ALPHA1, ALPHA2 are non-zero real numbers 
+! (ALPHA1 > 0, ALPHA2 > 0) leading to a strongly elliptic strain 
+! energy (see eq. (22) in [2]). This is left to the user to check.
 !
 ! The initial porosity (AC) must satisfy 0 <= AC <= 1. 
 !
@@ -113,7 +114,7 @@
 !
 !     STDB_ABQERR AND GET_THREAD_ID INITIALIZATION
 !
-      DIMENSION INTV(1),REALV(1)
+      DIMENSION INTV(1),REALV(3)
       CHARACTER*8 CHARV(1)
       CHARACTER*100 STRING1, STRING2, STRING3
       CHARACTER*300 STRING
@@ -122,6 +123,8 @@
 !
       INTV(1)=0
       REALV(1)=0.
+      REALV(2)=0.
+      REALV(3)=0.
       CHARV(1)=''
 !
       MYTHREADID = GET_THREAD_ID()
@@ -167,14 +170,27 @@
 !
 !     PARTIAL MATERIAL PARAMETERS CHECKS
 !     
-      IF (((AMU1.LT.0.).OR.(AMU2.LT.0.)).AND.(MYTHREADID.EQ.0)) THEN
-          REALV(1)=AMU1      
-          REALV(2)=AMU1      
-          STRING1='RECEIVED AMU1 = %R AND AMU2 = %R.'
-          STRING2=' THE PARAMETERS AMU1 AND AMU2 MUST BE NON-NEGATIVE.'
-          STRING = TRIM(STRING1) // TRIM(STRING2)
-          CALL STDB_ABQERR(-3,STRING,INTV,REALV,CHARV)
-      END IF                      
+      IF (((AMU1.LT.0.).OR.(AMU2.LT.0.).OR.(AMU1+AMU2.LE.0.))
+     1 .AND.(MYTHREADID.EQ.0)) THEN
+        REALV(1)=AMU1      
+        REALV(2)=AMU2      
+        REALV(3)=AMU1+AMU2      
+        STRING1='RECEIVED AMU1 = %R AND AMU2 = %R, AMU1 + AMU2 = %R.'
+        STRING2=' THE PARAMETERS AMU1 AND AMU2 MUST BE NON-NEGATIVE'
+        STRING3=' AND AMU1 + AMU2, MUST BE GREATER THAT ZERO.'
+        STRING = TRIM(STRING1) // TRIM(STRING2) // TRIM(STRING3)
+        CALL STDB_ABQERR(-3,STRING,INTV,REALV,CHARV)
+      END IF            
+!      
+      IF (((ALPHA1.EQ.0.).OR.(ALPHA2.EQ.0.)).AND.
+     1 (MYTHREADID.EQ.0)) THEN
+        REALV(1)=ALPHA1      
+        REALV(2)=ALPHA2      
+        STRING1='RECEIVED ALPHA1 = %R AND ALPHA2 = %R.'
+        STRING2=' THE EXPONENTS ALPHA1 AND ALPHA2 MUST BE NON-ZERO.'
+        STRING = TRIM(STRING1) // TRIM(STRING2)
+        CALL STDB_ABQERR(-3,STRING,INTV,REALV,CHARV)
+      END IF             
 !      
       IF (AC.LT.0.) THEN 
         IF (MYTHREADID.EQ.0) THEN
