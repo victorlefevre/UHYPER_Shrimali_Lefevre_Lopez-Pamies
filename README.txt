@@ -49,7 +49,7 @@
 ! behavior of the underlying elastomer are non-negative real numbers 
 ! (AMU1 >= 0, AMU2 >= 0) with strictly positive sum (AMU1 + AMU2 > 0). 
 ! The two exponents ALPHA1, ALPHA2 are non-zero real numbers 
-! (ALPHA1 > 0, ALPHA2 > 0) leading to a strongly elliptic strain 
+! (ALPHA1 ≠ 0, ALPHA2 ≠ 0) leading to a strongly elliptic strain 
 ! energy (see eq. (22) in [2]). This is left to the user to check.
 !
 ! The initial porosity (AC) must satisfy 0 <= AC <= 1. 
