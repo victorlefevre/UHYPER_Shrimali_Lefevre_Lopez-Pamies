@@ -231,6 +231,8 @@
       AOMAC = 1.-AF0
       ACT = AJ-AOMAC ! AJ + AF0 - 1
 !
+!     CONSTRAINT AJ + AF0 - 1 > 0 CHECK 
+!
       IF (ACT.LE.0.) THEN    
         REALV(1)=ACT/AJ   
         STRING1='FOUND ELEMENT WITH NEGATIVE CURRENT POROSITY f=%R.'
