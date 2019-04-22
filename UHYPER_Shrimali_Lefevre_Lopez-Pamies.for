@@ -42,7 +42,7 @@
 !  ALPHA1  = PROPS(2)  ! EXPONENT #1 OF THE ELASTOMER
 !  AMU2    = PROPS(3)  ! PARAMETER #2 OF THE ELASTOMER
 !  ALPHA2  = PROPS(4)  ! EXPONENT #2 OF THE ELASTOMER 
-!  AC      = PROPS(5)  ! INITIAL POROSITY 
+!  AF0      = PROPS(5)  ! INITIAL POROSITY 
 !
 ! The two material parameters AMU1, AMU2 characterizing the elastic    
 ! behavior of the underlying elastomer are non-negative real numbers 
@@ -51,16 +51,16 @@
 ! (ALPHA1 ≠ 0, ALPHA2 ≠ 0) leading to a strongly elliptic strain 
 ! energy (see eq. (22) in [2]). This is left to the user to check.
 !
-! The initial porosity (AC) must satisfy 0 <= AC <= 1. 
+! The initial porosity (AF0) must satisfy 0 <= AF0 <= 1. 
 !
 ! As expected from physical considerations, this macroscopic energy
 ! remains finite so long the determinant of the deformation 
-! gradient (AJ) satisfies the condition AJ - 1 + AC > 0. This
+! gradient (AJ) satisfies the condition AJ - 1 + AF0 > 0. This
 ! inequality constraint is enforced through a MOREAU-YOSIDA
 ! regularization (see, e.g. [3]). The underlying weight (ANU) is set
 ! here by default to ANU = 1,000,000.
 !
-! The porosity in the deformed configuration (AJ - 1 + AC) / AJ
+! The porosity in the deformed configuration (AJ - 1 + AF0) / AJ
 ! may be output (to be plotted for instance) as a solution-dependent 
 ! state variable (SDV), e.g., using the lines
 ! *DEPVAR
@@ -69,7 +69,7 @@
 ! in the input (.inp) file. If needed, this solution-dependent state 
 ! variable can be initialized using the lines
 ! *INITIAL CONDITIONS, TYPE=SOLUTION
-! <some element set>, AC
+! <some element set>, AF0
 ! in the input (.inp) file.
 !
 !**********************************************************************
@@ -166,7 +166,7 @@
       ALPHA1  = PROPS(2)  ! I1 EXPONENT #1 OF THE ELASTOMER
       AMU2    = PROPS(3)  ! PARAMETER #2 OF THE ELASTOMER
       ALPHA2  = PROPS(4)  ! I1 EXPONENT #2 OF THE ELASTOMER 
-      AC      = PROPS(5)  ! INITIAL POROSITY
+      AF0      = PROPS(5)  ! INITIAL POROSITY
 !
 !     PARTIAL MATERIAL PARAMETERS CHECKS
 !     
@@ -192,19 +192,19 @@
         CALL STDB_ABQERR(-3,STRING,INTV,REALV,CHARV)
       END IF             
 !      
-      IF (AC.LT.0.) THEN 
+      IF (AF0.LT.0.) THEN 
         IF (MYTHREADID.EQ.0) THEN
-          REALV(1)=AC  
-          STRING1='RECEIVED AC = %R. THE INITIAL POROSITY IS NEGATIVE.'
+          REALV(1)=AF0  
+          STRING1='RECEIVED AF0 = %R. THE INITIAL POROSITY IS NEGATIVE.'
           STRING = TRIM(STRING1)
           CALL STDB_ABQERR(-3,STRING,INTV,REALV,CHARV)
         ELSE
           CALL XIT
         END IF
-      ELSE IF (AC.GT.1.) THEN 
+      ELSE IF (AF0.GT.1.) THEN 
         IF (MYTHREADID.EQ.0) THEN
-          REALV(1)=AC  
-          STRING1='RECEIVED AC = %R. THE INITIAL POROSITY' 
+          REALV(1)=AF0  
+          STRING1='RECEIVED AF0 = %R. THE INITIAL POROSITY' 
           STRING2=' IS GREATER THAN 1.'
           STRING = TRIM(STRING1) // TRIM(STRING2)   
           CALL STDB_ABQERR(-3,STRING,INTV,REALV,CHARV)
@@ -213,7 +213,7 @@
         END IF
       END IF  
 !
-      IF (AJ+AC.LT.1.) THEN 
+      IF (AJ+AF0.LT.1.) THEN 
         INTV(1)=NOEL  
         STRING1='THE POROSITY IS NEGATIVE IN ELEMENT #%I.'    
         STRING2=' TREAT THE RESULTS WITH CAUTION.'    
@@ -228,8 +228,15 @@
       AFT = 4./3.
       AST = 7./3.
       ATET = 10./3. 
-      AOMAC = 1.-AC
-      ACT = AJ-AOMAC ! AJ + AC - 1
+      AOMAC = 1.-AF0
+      ACT = AJ-AOMAC ! AJ + AF0 - 1
+!
+      IF (ACT.LE.0.) THEN    
+        REALV(1)=ACT/AJ   
+        STRING1='FOUND ELEMENT WITH NEGATIVE CURRENT POROSITY f=%R.'
+        STRING = TRIM(STRING1) // TRIM(STRING2)
+        CALL STDB_ABQERR(-3,STRING,INTV,REALV,CHARV)
+      END IF
 !
 !     FIRST INVARIANT AI1 = F.F AND PARTIAL DERIVATIVES
 !      
@@ -243,20 +250,20 @@
 !
 !     EQ (19) IN [1] AND PARTIAL DERIVATIVES
 !      
-      ASI1=3.*AOMAC*(AI1-3.)/(3.+2.*AC) + (3.*(2.*AJ-1. -
-     1 AOMAC*(2.*AC+3.*AJ**ATT)*AJ**AOT/(3.+2.*AC) - 
-     2 AC**AOT*AJ**AOT*(2.*ACT-AC)/ABS(ACT)**AOT))/AJ**AOT
+      ASI1=3.*AOMAC*(AI1-3.)/(3.+2.*AF0) + (3.*(2.*AJ-1. -
+     1 AOMAC*(2.*AF0+3.*AJ**ATT)*AJ**AOT/(3.+2.*AF0) - 
+     2 AF0**AOT*AJ**AOT*(2.*ACT-AF0)/ABS(ACT)**AOT))/AJ**AOT
 !      
-      DASI1DAI1=3.*AOMAC/(3.+2.*AC)
+      DASI1DAI1=3.*AOMAC/(3.+2.*AF0)
 !      
-      DASI1DAJ=AJ**(-AFT)+(2.*(3.+7.*AC))/((3.+2.*AC)*AJ**AOT) - 
-     1 AC**AOT*(4.*ACT+AC)/ABS(ACT)**AFT  
+      DASI1DAJ=AJ**(-AFT)+(2.*(3.+7.*AF0))/((3.+2.*AF0)*AJ**AOT) - 
+     1 AF0**AOT*(4.*ACT+AF0)/ABS(ACT)**AFT  
 !      
-	  DASI1DAJAJ=(2.*AC**AOT*(2.*AC-1.+AJ)/ABS(-1 + AC + AJ)**AST 
-     1 -2./AJ**AST - (3.+7.*AC)/((3.+2.*AC)*AJ**AFT))*ATT
+	  DASI1DAJAJ=(2.*AF0**AOT*(2.*AF0-1.+AJ)/ABS(-1 + AF0 + AJ)**AST 
+     1 -2./AJ**AST - (3.+7.*AF0)/((3.+2.*AF0)*AJ**AFT))*ATT
 !      
-      DASI1DAJAJAJ=(7./AJ**ATET + 2.*(3.+7.*AC)/((3.+2.*AC)*AJ**AST) - 
-     1 AC**AOT*(4.*ACT+7.*AC)/ABS(ACT)**ATET)*ATT*ATT
+      DASI1DAJAJAJ=(7./AJ**ATET + 2.*(3.+7.*AF0)/((3.+2.*AF0)*AJ**AST) - 
+     1 AF0**AOT*(4.*ACT+7.*AF0)/ABS(ACT)**ATET)*ATT*ATT
 !
 !     ARGUMENT IN EQ (18) IN [1] AND PARTIAL DERIVATIVES
 !      
