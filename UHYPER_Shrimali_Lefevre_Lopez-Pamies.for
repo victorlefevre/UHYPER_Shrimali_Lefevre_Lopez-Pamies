@@ -64,8 +64,8 @@
 !      to carry on
 !  -- an ERROR message when AJ - 1 + AF0 < -0.01 and TERMINATES the job
 ! In both cases, please treat the results with caution and check that 
-! the current local porosity (see below on how to request it) given by
-! (AJ - 1 + AF0) / AJ remains positive.
+! the current local porosity given by (AJ - 1 + AF0) / AJ 
+! remains positive; see below on how to request it.
 !
 ! The porosity in the deformed configuration (AJ - 1 + AF0) / AJ
 ! is required to be output (to check the results for instance, 
