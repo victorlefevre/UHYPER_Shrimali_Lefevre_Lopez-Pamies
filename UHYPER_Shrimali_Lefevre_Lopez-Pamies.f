@@ -58,19 +58,26 @@
 ! gradient (AJ) satisfies the condition AJ - 1 + AF0 > 0. This
 ! inequality constraint is enforced through a MOREAU-YOSIDA
 ! regularization (see, e.g. [3]). The underlying weight (ANU) is set
-! here by default to ANU = 1,000,000.
+! here by default to ANU = 1.0e15. The subroutine issues two kinds
+! of messages regarding the constraint:
+!  -- a WARNING message when AJ - 1 + AF0 < 1e-9 which allows the job
+!      to carry on
+!  -- an ERROR message when AJ - 1 + AF0 < -0.01 and TERMINATES the job
+! In both cases, please treat the results with caution and check that 
+! the current local porosity (see below on how to request it) given by
+! (AJ - 1 + AF0) / AJ remains positive.
 !
 ! The porosity in the deformed configuration (AJ - 1 + AF0) / AJ
-! may be output (to be plotted for instance) as a solution-dependent 
-! state variable (SDV), e.g., using the lines
+! is required to be output (to check the results for instance, 
+! see above) as a solution-dependent state variable (SDV), e.g.,
+! using the following lines in the input (.inp) file:
 ! *DEPVAR
 ! 1
 ! 1, Porosity, Current local porosity
-! in the input (.inp) file. If needed, this solution-dependent state 
-! variable can be initialized using the lines
+! The solution-dependent state variable may be initialized using the 
+! following lines in the input (.inp) file:
 ! *INITIAL CONDITIONS, TYPE=SOLUTION
 ! <some element set>, AF0
-! in the input (.inp) file.
 !
 !**********************************************************************
 ! Additional information:
@@ -118,6 +125,8 @@
       CHARACTER*8 CHARV(1)
       CHARACTER*100 STRING1, STRING2, STRING3
       CHARACTER*300 STRING
+!
+      DATA LWRITE /1/
 !      
       INTEGER MYTHREADID  
 !
@@ -137,11 +146,11 @@
           STRING2='SIBLE. SET USER TYPE=COMPRESSIBLE.'
           STRING = TRIM(STRING1) // TRIM(STRING2)
           CALL STDB_ABQERR(-3,STRING,INTV,REALV,CHARV)
-        ELSE IF (NUMSTATEV.GE.2) THEN  
+        ELSE IF (NUMSTATEV.NE.1) THEN  
           INTV(1)=NUMSTATEV
           STRING1='RECEIVED REQUEST FOR %I SOLUTION-DEPENDENT STATE'
-          STRING2=' VARIABLES. THE SUBROUTINE MAY ONLY CREATE UP TO'
-          STRING3=' 1 SOLUTION-DEPENDENT STATE VARIABLE.'
+          STRING2=' VARIABLES. THE SUBROUTINE CREATES 1 SOLUTION'
+          STRING3='-DEPENDENT STATE VARIABLE.'
           STRING = TRIM(STRING1) // TRIM(STRING2) // TRIM(STRING3)
           CALL STDB_ABQERR(-3,STRING,INTV,REALV,CHARV)
         ELSE IF (NUMFIELDV.NE.0) THEN 
@@ -213,12 +222,25 @@
         END IF
       END IF  
 !
-      IF (AJ+AF0.LT.1.) THEN 
+!     CONSTRAINT AJ + AF0 - 1 > 0 CHECK: WARNING MESSAGE
+!
+      IF (AJ+AF0.LT.1.0 .AND. LWRITE.EQ.1 ) THEN 
+        LWRITE = 0
         INTV(1)=NOEL  
         STRING1='THE POROSITY IS NEGATIVE IN ELEMENT #%I.'    
         STRING2=' TREAT THE RESULTS WITH CAUTION.'    
         STRING = TRIM(STRING1) // TRIM(STRING2)   
         CALL STDB_ABQERR(-1,STRING,INTV,REALV,CHARV)
+      END IF 
+!
+!     CONSTRAINT AJ + AF0 - 1 > 0 CHECK: JOB TERMINATION
+! 
+      IF (AJ+AF0.LE.0.99) THEN  
+        INTV(1)=NOEL    
+        STRING1='THE POROSITY IS NEGATIVE IN ELEMENT #%I.'    
+        STRING2=' JOB TERMINATED.'    
+        STRING = TRIM(STRING1) // TRIM(STRING2) 
+        CALL STDB_ABQERR(-3,STRING,INTV,REALV,CHARV)
       END IF
 !
 !     RECURRING RATIOS AND FACTORS
@@ -228,17 +250,16 @@
       AFT = 4./3.
       AST = 7./3.
       ATET = 10./3. 
+      AFN = 4./9.
       AOMAC = 1.-AF0
       ACT = AJ-AOMAC ! AJ + AF0 - 1
 !
-!     CONSTRAINT AJ + AF0 - 1 > 0 CHECK 
+!     ENFORCE LOWER LIMIT TO ACT FOR THE EVALUATION OF ASI1
 !
-      IF (ACT.LE.0.) THEN    
-        REALV(1)=ACT/AJ   
-        STRING1='FOUND ELEMENT WITH NEGATIVE CURRENT POROSITY f=%R.'
-        STRING = TRIM(STRING1) // TRIM(STRING2)
-        CALL STDB_ABQERR(-3,STRING,INTV,REALV,CHARV)
-      END IF
+      ACT_MIN = 1.0e-9
+      ACT0 = MAX(ACT, ACT_MIN)
+      DACT0DJ = 1.0
+      IF (ACT.LT.ACT_MIN) DACT0DJ = 0.0
 !
 !     FIRST INVARIANT AI1 = F.F AND PARTIAL DERIVATIVES
 !      
@@ -254,18 +275,18 @@
 !      
       ASI1=3.*AOMAC*(AI1-3.)/(3.+2.*AF0) + (3.*(2.*AJ-1. -
      1 AOMAC*(2.*AF0+3.*AJ**ATT)*AJ**AOT/(3.+2.*AF0) - 
-     2 AF0**AOT*AJ**AOT*(2.*ACT-AF0)/ABS(ACT)**AOT))/AJ**AOT
+     2 AF0**AOT*AJ**AOT*(2.*ACT0-AF0)/ACT0**AOT))/AJ**AOT
 !      
       DASI1DAI1=3.*AOMAC/(3.+2.*AF0)
 !      
       DASI1DAJ=AJ**(-AFT)+(2.*(3.+7.*AF0))/((3.+2.*AF0)*AJ**AOT) - 
-     1 AF0**AOT*(4.*ACT+AF0)/ABS(ACT)**AFT  
+     1 AF0**AOT*(4.*ACT0+AF0)*DACT0DJ/ACT0**AFT  
 !      
-	  DASI1DAJAJ=(2.*AF0**AOT*(2.*AF0-1.+AJ)/ABS(-1 + AF0 + AJ)**AST 
+      DASI1DAJAJ=(2.*AF0**AOT*(AF0+ACT0)*DACT0DJ**2.0/ACT0**AST 
      1 -2./AJ**AST - (3.+7.*AF0)/((3.+2.*AF0)*AJ**AFT))*ATT
 !      
       DASI1DAJAJAJ=(7./AJ**ATET + 2.*(3.+7.*AF0)/((3.+2.*AF0)*AJ**AST) - 
-     1 AF0**AOT*(4.*ACT+7.*AF0)/ABS(ACT)**ATET)*ATT*ATT
+     1 AF0**AOT*(4.*ACT0+7.*AF0)*DACT0DJ**3.0/ACT0**ATET)*AFN
 !
 !     ARGUMENT IN EQ (18) IN [1] AND PARTIAL DERIVATIVES
 !      
@@ -304,7 +325,7 @@
 !      
 !     MOREAU-YOSIDA REGULARIZATION FOR THE CONSTRAINT ACT>0
 !      
-      ANU=1000000.      
+      ANU=1.0e15      
 !      
       AMYR=ANU/2*(ABS(ACT)-ACT)**2.
 !      
@@ -314,7 +335,6 @@
       IF (ACT.LE.0) DAMYRDAJAJ = ANU*4.
 !            
       DAMYRDAJAJAJ=0.
-      IF (ABS(ACT).LE.1./(ANU*8.)) DAMYRDAJAJAJ = -ANU*8.
 !
 !     MACROSCOPIC STRAIN ENERGY DENSITY FUNCTION FOR 
 !     POROUS ELASTOMER [1]
@@ -357,7 +377,7 @@
 !     SOLUTION-DEPENDENT STATE VARIABLE
 !     CURRENT POROSITY 
 !      
-      IF (NUMSTATEV.EQ.1) STATEV(1)=ACT/AJ 
+      STATEV(1)=ACT/AJ 
 !      
       RETURN
       END

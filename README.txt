@@ -1,6 +1,5 @@
 !**********************************************************************
-! Legal notice: UHYPER_Shrimali_Lefevre_Lopez-Pamies.for (Windows) and
-!               UHYPER_Shrimali_Lefevre_Lopez-Pamies.for (Linux)
+! Legal notice: UHYPER_Shrimali_Lefevre_Lopez-Pamies.for (Windows) 
 !
 ! Copyright (C) 2018 Bhavesh Shrimali (bshrima2@illinois.edu)
 !                    Victor Lefèvre (victor.lefevre@northwestern.edu)
@@ -43,7 +42,7 @@
 !  ALPHA1  = PROPS(2)  ! EXPONENT #1 OF THE ELASTOMER
 !  AMU2    = PROPS(3)  ! PARAMETER #2 OF THE ELASTOMER
 !  ALPHA2  = PROPS(4)  ! EXPONENT #2 OF THE ELASTOMER 
-!  AC      = PROPS(5)  ! INITIAL POROSITY 
+!  AF0      = PROPS(5)  ! INITIAL POROSITY 
 !
 ! The two material parameters AMU1, AMU2 characterizing the elastic    
 ! behavior of the underlying elastomer are non-negative real numbers 
@@ -52,26 +51,33 @@
 ! (ALPHA1 ≠ 0, ALPHA2 ≠ 0) leading to a strongly elliptic strain 
 ! energy (see eq. (22) in [2]). This is left to the user to check.
 !
-! The initial porosity (AC) must satisfy 0 <= AC <= 1. 
+! The initial porosity (AF0) must satisfy 0 <= AF0 <= 1. 
 !
 ! As expected from physical considerations, this macroscopic energy
 ! remains finite so long the determinant of the deformation 
-! gradient (AJ) satisfies the condition AJ - 1 + AC > 0. This
+! gradient (AJ) satisfies the condition AJ - 1 + AF0 > 0. This
 ! inequality constraint is enforced through a MOREAU-YOSIDA
 ! regularization (see, e.g. [3]). The underlying weight (ANU) is set
-! here by default to ANU = 1,000,000.
+! here by default to ANU = 1.0e15. The subroutine issues two kinds
+! of messages regarding the constraint:
+!  -- a WARNING message when AJ - 1 + AF0 < 1e-9 which allows the job
+!      to carry on
+!  -- an ERROR message when AJ - 1 + AF0 < -0.01 and TERMINATES the job
+! In both cases, please treat the results with caution and check that 
+! the current local porosity (see below on how to request it) given by
+! (AJ - 1 + AF0) / AJ remains positive.
 !
-! The porosity in the deformed configuration (AJ - 1 + AC) / AJ
-! may be output (to be plotted for instance) as a solution-dependent 
-! state variable (SDV), e.g., using the lines
+! The porosity in the deformed configuration (AJ - 1 + AF0) / AJ
+! is required to be output (to check the results for instance, 
+! see above) as a solution-dependent state variable (SDV), e.g.,
+! using the following lines in the input (.inp) file:
 ! *DEPVAR
 ! 1
 ! 1, Porosity, Current local porosity
-! in the input (.inp) file. If needed, this solution-dependent state 
-! variable can be initialized using the lines
+! The solution-dependent state variable may be initialized using the 
+! following lines in the input (.inp) file:
 ! *INITIAL CONDITIONS, TYPE=SOLUTION
-! <some element set>, AC
-! in the input (.inp) file.
+! <some element set>, AF0
 !
 !**********************************************************************
 ! Additional information:
