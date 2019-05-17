@@ -82,9 +82,13 @@
 !**********************************************************************
 ! Additional information:
 !
-! This subroutine can create a solution-dependent state variable for
+! This subroutine creates a solution-dependent state variable for
 ! for the current porosity (see above) but does not create predefined 
 ! field variables. 
+!
+! Examples can be found in the article posted in the SIMULIA Learning 
+! Community: https://r1132100503382-eu1-3dswym.3dexperience.3ds.com/
+! #community:39/post:mRdxC3xkRzajJ6LVk0SgwA
 !
 ! Please consult the ABAQUS Documentation for additional references 
 ! regarding the use of compressible USER hyperelastic models with
